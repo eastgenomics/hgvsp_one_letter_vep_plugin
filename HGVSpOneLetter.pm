@@ -14,7 +14,7 @@
 
 =head1 SYNOPSIS
 
- mv HGVSpOneLetter.pm ~/.vep/Plugins
+ cp HGVSpOneLetter.pm ~/.vep/Plugins/
  ./vep -i variations.vcf --hgvs --plugin HGVSpOneLetter
 
 =head1 DESCRIPTION
@@ -106,39 +106,39 @@ sub run {
 sub valid_hgvsp {
   my ($id, $desc) = @_;
 
-  return 0 unless length $id && $id =~ /^[A-Za-z0-9_.]+$/;
+  return 0 unless length $id && $id =~ /^[A-Za-z0-9_.]+\z/;
   return 0 unless $desc =~ s/^p\.//;
 
   # predicted format p.(...) and VEP's URI escaping of '='
-  $desc = $1 if $desc =~ /^\((.+)\)$/;
+  $desc = $1 if $desc =~ /^\((.+)\)\z/;
   $desc =~ s/%3D/=/g;
 
   # no protein / unknown effect / start lost
   return 1 if $desc eq '0' || $desc eq '?' || $desc eq 'Met1?';
 
   # synonymous: one residue, including a retained stop
-  return 1 if $desc =~ /^$RESX$POS=$/;
+  return 1 if $desc =~ /^$RESX$POS=\z/;
 
   # substitution (missense or nonsense); a substituted stop must be an extension
-  return 1 if $desc =~ /^$RES$POS$RESX$/;
+  return 1 if $desc =~ /^$RES$POS$RESX\z/;
 
   # deletion / duplication of one residue or a range (stop deletion must be an extension)
-  return 1 if $desc =~ /^$RES$POS(?:del|dup)$/;
-  return $2 > $1 if $desc =~ /^$RES${POS}_$RES$POS(?:del|dup)$/;
+  return 1 if $desc =~ /^$RES$POS(?:del|dup)\z/;
+  return $2 > $1 if $desc =~ /^$RES${POS}_$RES$POS(?:del|dup)\z/;
 
   # insertion between adjacent residues; a stop can only end the inserted sequence
-  return $2 == $1 + 1 if $desc =~ /^$RES${POS}_$RESX${POS}ins(?:$RES)*$RESX$/;
+  return $2 == $1 + 1 if $desc =~ /^$RES${POS}_$RESX${POS}ins(?:$RES)*$RESX\z/;
 
   # deletion-insertion; a stop can only end the inserted sequence
-  return 1 if $desc =~ /^$RES${POS}delins(?:$RES)*$RESX$/;
-  return $2 > $1 if $desc =~ /^$RES${POS}_$RES${POS}delins(?:$RES)*$RESX$/;
+  return 1 if $desc =~ /^$RES${POS}delins(?:$RES)*$RESX\z/;
+  return $2 > $1 if $desc =~ /^$RES${POS}_$RES${POS}delins(?:$RES)*$RESX\z/;
 
   # frameshift: long form with new stop, or short form (a frameshift at the stop codon is an extension)
-  return 1 if $desc =~ /^$RES$POS(?:${RES}fs$NEWSTOP|fs)$/;
+  return 1 if $desc =~ /^$RES$POS(?:${RES}fs$NEWSTOP|fs)\z/;
 
   # extension: C-terminal (stop lost) or N-terminal (new upstream start)
-  return 1 if $desc =~ /^Ter$POS${RES}ext$NEWSTOP$/;
-  return 1 if $desc =~ /^Met1ext-[1-9][0-9]*$/;
+  return 1 if $desc =~ /^Ter$POS${RES}ext$NEWSTOP\z/;
+  return 1 if $desc =~ /^Met1ext-[1-9][0-9]*\z/;
 
   return 0;
 }

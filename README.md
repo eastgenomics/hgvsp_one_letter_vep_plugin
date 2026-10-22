@@ -1,10 +1,16 @@
 # vep_plugin_hgvsp_one_letter
 
-A VEP plugin, `HGVSpOneLetter`, that adds an `HGVSp_OneLetter` field: VEP's HGVSp with single-letter amino acid codes. VEP's own three-letter `HGVSp` field is left unchanged, so both are available.
+A VEP plugin, `HGVSpOneLetter`, that adds two fields:
+
+- `HGVSp_OneLetter`: VEP's HGVSp with single-letter amino acid codes
+- `HGVSp_Valid`: `true`/`false`, whether VEP's three-letter HGVSp is well-formed HGVS (see [HGVSp_Valid](#hgvsp_valid))
+
+VEP's own three-letter `HGVSp` field is left unchanged, so both forms are available.
 
 ```
 HGVSp            NP_000537.3:p.Arg175His      NP_000305.3:p.Lys6Ter       NP_000537.3:p.Asp393dup
 HGVSp_OneLetter  NP_000537.3:p.R175H          NP_000305.3:p.K6*            NP_000537.3:p.D393dup
+HGVSp_Valid      true                         true                        true
 ```
 
 ## Why not Ensembl's SingleLetterAA?
@@ -31,7 +37,7 @@ Requires `--hgvs`.
 
 ```bash
 cp HGVSpOneLetter.pm ~/.vep/Plugins/
-vep -i input.vcf --hgvs --plugin HGVSpOneLetter --fields "...,HGVSp,HGVSp_OneLetter"
+vep -i input.vcf --hgvs --plugin HGVSpOneLetter --fields "...,HGVSp,HGVSp_OneLetter,HGVSp_Valid"
 ```
 
 ### With eggd_vep (1.3.0)
@@ -43,7 +49,7 @@ Add a plugin entry and `dir_plugins` to the VEP config:
   {
     "name": "HGVSpOneLetter",
     "pm_file": "file-xxxx",
-    "required_fields": "HGVSp_OneLetter",
+    "required_fields": "HGVSp_OneLetter,HGVSp_Valid",
     "resource_files": []
   }
 ],
@@ -51,7 +57,7 @@ Add a plugin entry and `dir_plugins` to the VEP config:
 ```
 
 - `"resource_files": []` is required: eggd_vep iterates over it with jq and fails if it is missing.
-- `required_fields` adds `HGVSp_OneLetter` to `--fields` (it is appended after the other fields).
+- `required_fields` adds `HGVSp_OneLetter` and `HGVSp_Valid` to `--fields` (they are appended after the other fields).
 - **`dir_plugins` is required.** eggd_vep downloads each `pm_file` to `/home/dnanexus/Plugins` (`/data/Plugins` in the container), but the Ensembl image defaults to `--dir_plugins /plugins`, its bundled copy of VEP_plugins. Without the flag, a plugin that is not bundled in the image is skipped with only a warning (`Failed to compile plugin HGVSpOneLetter`) and the job still completes. VEP puts `dir_plugins` first on `@INC` (`Runner.pm`), so other plugins in the config are then also loaded from their `pm_file`.
 
 Check that the output CSQ header contains `HGVSp_OneLetter`; a missing field means the plugin did not load.
@@ -68,7 +74,20 @@ The plugin converts VEP's HGVSp faithfully, so anything VEP gets wrong in three-
 - writes synonymous multi-codon substitutions as `p.LeuSer112%3D` (not valid HGVS)
 - omits `ext` for delins within the stop codon (`p.Ter404delinsLeuArg`)
 
-Details in [`validation/README.md`](validation/README.md).
+All but the first are flagged `HGVSp_Valid=false`; `insTer`/`delinsTer` are well-formed HGVS, just not the preferred description. Details in [`validation/README.md`](validation/README.md).
+
+## HGVSp_Valid
+
+`HGVSp_Valid` is `true` when VEP's three-letter HGVSp is a well-formed HGVS protein description, and `false` otherwise. It checks syntax only: protein ID, residue codes, positions, and the forms of substitution, synonymous, deletion, duplication, insertion, delins, frameshift, extension and start loss. It does not check the change against the protein sequence.
+
+It is stricter than biocommons `hgvs`, which accepts some VEP forms that HGVS describes differently. Strings flagged `false` include:
+
+- `p.Met1_?2` (should be `p.Met1?`) and start loss reported mid-protein (`p.Cys244?`)
+- `p.Ter404delextTer7`, `p.Ter404delinsLeuArg`, `p.Ter394CysfsTer77` (changes at the stop codon should be extensions)
+- `p.LeuSer112%3D` (multi-codon synonymous), `p.Val0_Val1insAsn` (position 0)
+- any unrecognised residue code
+
+`HGVSp_OneLetter` is still written for these, converted code for code.
 
 ## Tests
 

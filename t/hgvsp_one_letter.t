@@ -101,6 +101,7 @@ my @invalid = (
   ['NP_1.1:p.Arg175GlyextTer5',     'extension not starting at a stop'],
   ['NP_1.1:p.(Arg175His',           'unbalanced bracket'],
   ['NP_1.1:p.Arg175His extra',      'trailing text'],
+  ["NP_1.1:p.Arg175His\n",          'trailing newline'],
 );
 for my $c (@invalid) {
   my ($in, $label) = @$c;

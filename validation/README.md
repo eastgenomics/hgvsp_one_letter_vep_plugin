@@ -4,6 +4,8 @@ All validation used VEP 115 via eggd_vep 1.3.0 (`--refseq --hgvs --shift_3prime 
 
 ## Results
 
+The platform runs below used the plugin before `HGVSp_Valid` was added; `HGVSp_Valid` has so far been tested by the unit tests (`t/`) and the `hgvs` comparison below only.
+
 | Test | Rows with HGVSp | `HGVSp_OneLetter` correct |
 |---|---|---|
 | Synthetic TP53/PTEN/GPX1, default flags | 531,982 | 531,982 |
