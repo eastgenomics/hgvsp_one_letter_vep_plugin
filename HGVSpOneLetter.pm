@@ -31,12 +31,12 @@
  --remove_hgvsp_version and --no_escape are honoured. Requires --hgvs.
 
  It also adds HGVSp_SyntaxFlag: "hgvs_unparseable" when the biocommons hgvs
- package (1.5.7) cannot parse VEP's three-letter HGVSp, and empty otherwise.
- It uses a port of the hgvs protein grammar, so it flags exactly what hgvs
- rejects: in VEP 115 output, start-codon deletions (p.Met1_?2), stop-codon
- deletions (p.Ter404delextTer7), synonymous changes across codons
- (p.LeuSer112%3D), and residue codes hgvs does not support (Pyl, Asx, Glx,
- and Xaa at a position).
+ package (1.5.7, with bioutils 0.6.2) cannot parse VEP's three-letter HGVSp,
+ and empty otherwise. It uses a port of the hgvs protein grammar, so it flags
+ exactly what hgvs rejects: in VEP 115 output, start-codon deletions
+ (p.Met1_?2), stop-codon deletions (p.Ter404delextTer7), synonymous changes
+ across codons (p.LeuSer112%3D), and residue codes the grammar does not
+ support (Pyl, and Xaa at a position).
 
  This is a format check only: an empty flag does not mean the HGVSp is
  correct for the protein. HGVSp_OneLetter is still written for flagged rows.
@@ -58,7 +58,7 @@ my %AA = (
   Ala => 'A', Arg => 'R', Asn => 'N', Asp => 'D', Cys => 'C', Gln => 'Q', Glu => 'E',
   Gly => 'G', His => 'H', Ile => 'I', Leu => 'L', Lys => 'K', Met => 'M', Phe => 'F',
   Pro => 'P', Ser => 'S', Thr => 'T', Trp => 'W', Tyr => 'Y', Val => 'V',
-  Sec => 'U', Pyl => 'O', Xaa => 'X', Ter => '*',
+  Sec => 'U', Pyl => 'O', Xaa => 'X', Asx => 'B', Glx => 'Z', Ter => '*',
 );
 my $AA_RE = join '|', keys %AA;
 
@@ -66,10 +66,9 @@ my $AA_RE = join '|', keys %AA;
 # used for HGVSp_SyntaxFlag. The grammar is a PEG: a choice takes the first
 # alternative that matches and never goes back to try the others, and repeats
 # are greedy. Choices are therefore atomic groups (?>...) and repeats are
-# possessive, so this accepts exactly what hgvs parses. Asx and Glx are in
-# the grammar but hgvs then fails converting them (KeyError), so they are left
-# out here; Pyl is not in the grammar.
-my $AA3     = qr/(?:Ala|Cys|Asp|Glu|Phe|Gly|His|Ile|Lys|Leu|Met|Asn|Pro|Gln|Arg|Ser|Thr|Val|Trp|Tyr|Xaa|Sec)/;
+# possessive, so this accepts exactly what hgvs parses (with bioutils 0.6.2;
+# earlier bioutils raised KeyError on Asx and Glx). Pyl is not in the grammar.
+my $AA3     = qr/(?:Ala|Cys|Asp|Glu|Phe|Gly|His|Ile|Lys|Leu|Met|Asn|Pro|Gln|Arg|Ser|Thr|Val|Trp|Tyr|Asx|Glx|Xaa|Sec)/;
 my $AA1     = qr/[ACDEFGHIKLMNPQRSTVWYBZXU]/;
 my $AA13    = qr/(?>$AA3|$AA1)/;
 my $TERM13  = qr/(?>Ter|[X*])/;
@@ -106,7 +105,7 @@ sub feature_types {
 sub get_header_info {
   return {
     HGVSp_OneLetter  => 'HGVSp with single-letter amino acid codes (converted from three-letter HGVSp)',
-    HGVSp_SyntaxFlag => 'Set when biocommons hgvs 1.5.7 cannot parse HGVSp (hgvs_unparseable); empty otherwise. Format check only, not a validity check',
+    HGVSp_SyntaxFlag => 'Set when biocommons hgvs 1.5.7 (bioutils 0.6.2) cannot parse HGVSp (hgvs_unparseable); empty otherwise. Format check only, not a validity check',
   };
 }
 
@@ -126,7 +125,7 @@ sub run {
   return { HGVSp_OneLetter => "$id:$desc", $flag ? (HGVSp_SyntaxFlag => $flag) : () };
 }
 
-# 'hgvs_unparseable' if biocommons hgvs 1.5.7 cannot parse the HGVSp, else ''
+# 'hgvs_unparseable' if biocommons hgvs 1.5.7 (bioutils 0.6.2) cannot parse the HGVSp, else ''
 sub syntax_flag {
   my ($hgvsp) = @_;
 

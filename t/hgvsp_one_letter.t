@@ -55,6 +55,7 @@ my @cases = (
   ['NP_000572.2:p.Sec49Arg',                     'NP_000572.2:p.U49R',               '',                 'selenocysteine'],
   ['NP_000572.2:p.Sec49AlafsTer10',              'NP_000572.2:p.U49Afs*10',          '',                 'selenocysteine frameshift'],
   ['NP_000000.1:p.Pyl10Ala',                     'NP_000000.1:p.O10A',               'hgvs_unparseable', 'pyrrolysine (not in the hgvs grammar)'],
+  ['NP_000000.1:p.Asx10Glx',                    'NP_000000.1:p.B10Z',               '',                 'ambiguous residues Asx/Glx (B/Z)'],
   ['NP_000000.1:p.Xaa10Ala',                     'NP_000000.1:p.X10A',               'hgvs_unparseable', 'unknown residue at a position (hgvs reads X as a stop)'],
   # flags that change VEP's HGVSp format
   ['NP_000537.3:p.(Arg175His)',                  'NP_000537.3:p.(R175H)',            '',                 '--hgvsp_use_prediction'],
@@ -83,14 +84,12 @@ for my $three (sort keys %aa) {
             "$three -> $aa{$three}");
 }
 
-# HGVSp_SyntaxFlag follows the biocommons hgvs 1.5.7 parser: these are strings it rejects
+# HGVSp_SyntaxFlag follows the biocommons hgvs 1.5.7 parser (bioutils 0.6.2): these are strings it rejects
 my @flagged = (
   [':p.Arg175His',                      'missing protein ID'],
   ['NP_1.1:Arg175His',                  'missing p.'],
   ['NP_1.1:c.175del',                   'not a protein description (hgvs parses c.; HGVSp must be p.)'],
   ['NP_1.1:p.',                         'empty description'],
-  ['NP_1.1:p.Asx175His',                'ambiguous residue (hgvs KeyError)'],
-  ['NP_1.1:p.Ala175Glx',                'ambiguous residue as the new residue'],
   ['NP_1.1:p.Arg175',                   'substitution with no new residue'],
   ['NP_1.1:p.Arg175_Gly176ins',         'insertion with no sequence'],
   ['NP_1.1:p.Arg175delinsTerAla',       'residue after a stop in delins'],
@@ -115,6 +114,8 @@ my @not_flagged = (
   ['NP_1.1:p.Met1ext-5',                'N-terminal extension'],
   ['NP_1.1:p.(Arg175GlyfsTer?)',        'predicted frameshift, no new stop'],
   ['NP_1.1:p.Cys244?',                  'unknown effect mid-protein'],
+  ['NP_1.1:p.Asx175His',                'ambiguous residue at a position (bioutils 0.6.2)'],
+  ['NP_1.1:p.Ala175Glx',                'ambiguous residue as the new residue'],
   ['NP_1.1:p.Arg0His',                  'position 0'],
   ['NP_1.1:p.Ter175His',                'stop substitution without ext'],
   ['NP_1.1:p.Arg175_Gly173del',         'range end before start'],

@@ -76,7 +76,7 @@ Of these, `hgvs` rejects (and `HGVSp_SyntaxFlag` flags) only `p.Met1_?2`, `p.Ter
 
 ## HGVSp_SyntaxFlag
 
-`HGVSp_SyntaxFlag` is `hgvs_unparseable` when the biocommons [`hgvs`](https://github.com/biocommons/hgvs) package (1.5.7) cannot parse VEP's three-letter HGVSp, and empty otherwise. The plugin does not call `hgvs`: it uses a Perl port of the protein rules of its grammar, so it flags exactly what `hgvs` rejects and nothing more. VEP's `%3D` escaping of `=` is unescaped first. Two deliberate differences: the string must be a protein description (`:p.`; `hgvs` would also parse `c.` and other types), and accessions and gene symbols are matched as ASCII only.
+`HGVSp_SyntaxFlag` is `hgvs_unparseable` when the biocommons [`hgvs`](https://github.com/biocommons/hgvs) package (1.5.7, with [`bioutils`](https://github.com/biocommons/bioutils) 0.6.2) cannot parse VEP's three-letter HGVSp, and empty otherwise. The plugin does not call `hgvs`: it uses a Perl port of the protein rules of its grammar, so it flags exactly what `hgvs` rejects and nothing more. VEP's `%3D` escaping of `=` is unescaped first. Two deliberate differences: the string must be a protein description (`:p.`; `hgvs` would also parse `c.` and other types), and accessions and gene symbols are matched as ASCII only.
 
 It is a format check, not a validity check. An empty flag does not mean the HGVSp is correct: like `hgvs`, the check does not look at positions, ranges, where a stop may appear, or the change against the protein sequence, so `p.Arg0His`, `p.Arg175_Gly173del` and `p.Ter394CysfsTer77` are not flagged. The flag is also empty when there is no HGVSp.
 
@@ -86,7 +86,7 @@ VEP forms that are flagged:
 - `p.Ter404delextTer7` (stop-codon deletion)
 - `p.LeuSer112%3D` (synonymous change across codons)
 
-Residue codes `hgvs` does not support are also flagged: `Pyl`, `Asx` and `Glx` anywhere, and `Xaa` as the residue at a position (`p.Xaa10Ala`; `hgvs` reads the `X` as a stop). `Xaa` as a new residue (`p.Ala10Xaa`) is not flagged.
+Residue codes the `hgvs` grammar does not support are also flagged: `Pyl` anywhere, and `Xaa` as the residue at a position (`p.Xaa10Ala`; `hgvs` reads the `X` as a stop). `Xaa` as a new residue (`p.Ala10Xaa`) is not flagged. `Asx` and `Glx` are not flagged (bioutils before 0.6.2 failed on them); in `HGVSp_OneLetter` they become `B` and `Z`.
 
 `HGVSp_OneLetter` is still written for flagged rows, converted code for code.
 
