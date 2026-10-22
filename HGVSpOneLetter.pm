@@ -83,6 +83,7 @@ my $DEF_IVL = qr/(?>${POS}_$POS|$POS)/;                                    # def
 my $IVL     = qr/(?>$DEF_IVL|\($DEF_IVL\))/;                               # p_interval
 # p_posedit, including p_posedit_special
 my $POSEDIT = qr/(?>$IVL$EDIT|\($IVL$EDIT\)|=|\(=\)|0\?|0|\?)/;
+# accessions and gene symbols: ASCII only (Parsley's letter/digit are Unicode)
 my $NAME    = qr/(?>[A-Za-z0-9]|[-_](?=[A-Za-z0-9]))/;
 my $ACCN    = qr/[A-Za-z](?:$NAME++)?+(?:\.[0-9]++)?+/;
 my $GENE    = qr/(?:\([A-Za-z]$NAME++\))?+/;                               # opt_gene_expr

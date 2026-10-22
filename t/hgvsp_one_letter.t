@@ -98,6 +98,9 @@ my @invalid = (
   ['NP_1.1:p.(Arg175His',           'unbalanced bracket'],
   ['NP_1.1:p.Arg175His extra',      'trailing text'],
   ["NP_1.1:p.Arg175His\n",          'trailing newline'],
+  ['NP_1.:p.Arg175His',             'accession version with no number'],
+  ['1NP:p.Arg175His',               'accession not starting with a letter'],
+  ['NP_1.1(A):p.Arg175His',         'one-character gene symbol'],
 );
 for my $c (@invalid) {
   my ($in, $label) = @$c;
@@ -120,6 +123,15 @@ my @valid = (
   ['NP_1.1:p.Arg175GlyfsTer0',      'frameshift with new stop at 0'],
   ['NP_1.1:p.Arg175GlyextTer5',     'extension not starting at a stop'],
   ['NP_1.1(TP53):p.Arg175His',      'gene symbol after the accession'],
+  ['NP-1:p.Arg175His',              'hyphen in accession'],
+  ['NP_1.1:p.=',                    'no change'],
+  ['NP_1.1:p.(=)',                  'predicted no change'],
+  ['NP_1.1:p.0?',                   'predicted no protein'],
+  ['NP_1.1:p.R175*',                'one-letter codes, * stop'],
+  ['NP_1.1:p.R175X',                'one-letter codes, X stop'],
+  ['NP_1.1:p.A5insAV*',             'one-letter insertion ending in a stop'],
+  ['NP_1.1:p.A5delinsVX',           'one-letter delins ending in X'],
+  ['NP_1.1:p.Arg175Glyfs*?',        'frameshift with one-letter stop'],
 );
 for my $c (@valid) {
   my ($in, $label) = @$c;

@@ -46,6 +46,8 @@ perl = ("use lib '%s/t/lib', '%s'; use HGVSpOneLetter; "
         "while (<STDIN>) { chomp; print HGVSpOneLetter::valid_hgvsp($_) ? \"true\\n\" : \"false\\n\" }") % (REPO, REPO)
 ours = subprocess.run(["perl", "-e", perl], input="\n".join(strings) + "\n", capture_output=True, text=True, check=True).stdout.split()
 
+assert len(ours) == len(strings), "perl output does not match input line count"
+
 hp = hgvs.parser.Parser()
 res = collections.Counter(); diff = []
 for s, v in zip(strings, ours):
