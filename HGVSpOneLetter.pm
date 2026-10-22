@@ -30,14 +30,13 @@
  Because it starts from VEP's own HGVSp, --hgvsp_use_prediction,
  --remove_hgvsp_version and --no_escape are honoured. Requires --hgvs.
 
- It also adds HGVSp_Valid ("true"/"false"): whether VEP's three-letter HGVSp
- is a well-formed HGVS protein description. This checks syntax only (protein
- ID, residue codes, positions, and the forms of substitution, synonymous,
- deletion, duplication, insertion, delins, frameshift, extension and start
- loss); it does not check the change against the protein sequence. Strings
- that are not valid HGVS, such as VEP's p.Met1_?2, p.Ter404delextTer7 or
- p.LeuSer112=, and any unrecognised residue code, are flagged "false".
- HGVSp_OneLetter is still written for them.
+ It also adds HGVSp_Valid ("true"/"false"): whether the biocommons hgvs
+ package (1.5.7) can parse VEP's three-letter HGVSp, using a port of its
+ protein grammar. This is a syntax check only; it does not check positions,
+ ranges or the change against the protein sequence. VEP forms that hgvs
+ rejects, such as p.Met1_?2, p.Ter404delextTer7 and p.LeuSer112=, are flagged
+ "false", as are residue codes hgvs does not support (Pyl, Asx, Glx, and Xaa
+ at a position). HGVSp_OneLetter is still written for them.
 
 =cut
 
@@ -60,12 +59,33 @@ my %AA = (
 );
 my $AA_RE = join '|', keys %AA;
 
-# residues other than stop, and residues including stop
-my $RES  = qr/(?:Ala|Arg|Asn|Asp|Cys|Gln|Glu|Gly|His|Ile|Leu|Lys|Met|Phe|Pro|Ser|Thr|Trp|Tyr|Val|Sec|Pyl|Xaa)/;
-my $RESX = qr/(?:$RES|Ter)/;
-my $POS  = qr/([1-9][0-9]*)/;
-# new stop position for fs / ext: number or unknown
-my $NEWSTOP = qr/Ter(?:[1-9][0-9]*|\?)/;
+# Protein rules of the biocommons hgvs 1.5.7 grammar (hgvs/_data/hgvs.pymeta),
+# used for HGVSp_Valid. The grammar is a PEG: a choice takes the first
+# alternative that matches and never goes back to try the others, and repeats
+# are greedy. Choices are therefore atomic groups (?>...) and repeats are
+# possessive, so this accepts exactly what hgvs parses. Asx and Glx are in
+# the grammar but hgvs then fails converting them (KeyError), so they are left
+# out here; Pyl is not in the grammar.
+my $AA3     = qr/(?:Ala|Cys|Asp|Glu|Phe|Gly|His|Ile|Lys|Leu|Met|Asn|Pro|Gln|Arg|Ser|Thr|Val|Trp|Tyr|Xaa|Sec)/;
+my $AA1     = qr/[ACDEFGHIKLMNPQRSTVWYBZXU]/;
+my $AA13    = qr/(?>$AA3|$AA1)/;
+my $TERM13  = qr/(?>Ter|[X*])/;
+my $AAT13   = qr/(?>Ter|$AA3|[X*]|$AA1)/;                                  # aat3 | aat1
+my $AAT13_SEQ = qr/(?>Ter|(?:$AA3)++(?:Ter)?+|[X*]|(?:$AA1)++[X*]?+)/;      # aat3_seq | aat1_seq
+my $NUM     = qr/[0-9]++/;
+my $OFFSET  = qr/(?>[0-9]++|\?)?+/;                                        # fsext_offset
+my $FS      = qr/fs(?:$TERM13$OFFSET)?+/;
+my $EXT     = qr/ext(?:(?>$TERM13$OFFSET|(?:$AA13)?+-$NUM))?+/;
+# pro_edit: fs | ext | subst | delins | ins | del | dup | ident
+my $EDIT    = qr/(?>(?:$AAT13)?+$FS|(?:$AAT13)?+$EXT|$AAT13|\?|delins$AAT13_SEQ|ins$AAT13_SEQ|del|dup|=)/;
+my $POS     = qr/(?>$TERM13|$AA13)$NUM/;                                   # def_p_pos
+my $DEF_IVL = qr/(?>${POS}_$POS|$POS)/;                                    # def_p_interval
+my $IVL     = qr/(?>$DEF_IVL|\($DEF_IVL\))/;                               # p_interval
+# p_posedit, including p_posedit_special
+my $POSEDIT = qr/(?>$IVL$EDIT|\($IVL$EDIT\)|=|\(=\)|0\?|0|\?)/;
+my $NAME    = qr/(?>[A-Za-z0-9]|[-_](?=[A-Za-z0-9]))/;
+my $ACCN    = qr/[A-Za-z](?:$NAME++)?+(?:\.[0-9]++)?+/;
+my $GENE    = qr/(?:\([A-Za-z]$NAME++\))?+/;                               # opt_gene_expr
 
 sub new {
   my $class = shift;
@@ -82,7 +102,7 @@ sub feature_types {
 sub get_header_info {
   return {
     HGVSp_OneLetter => 'HGVSp with single-letter amino acid codes (converted from three-letter HGVSp)',
-    HGVSp_Valid     => 'Whether HGVSp is a well-formed HGVS protein description (true/false; syntax only)',
+    HGVSp_Valid     => 'Whether HGVSp parses as HGVS with biocommons hgvs 1.5.7 (true/false; syntax only)',
   };
 }
 
@@ -96,51 +116,20 @@ sub run {
   # convert only the description after the protein ID
   my ($id, $desc) = split /:/, $hgvsp, 2;
   return {} unless defined $desc;
-  my $valid = valid_hgvsp($id, $desc) ? 'true' : 'false';
+  my $valid = valid_hgvsp($hgvsp) ? 'true' : 'false';
   $desc =~ s/($AA_RE)/$AA{$1}/g;
 
   return { HGVSp_OneLetter => "$id:$desc", HGVSp_Valid => $valid };
 }
 
-# Syntax check of a three-letter HGVS protein description (after the ':')
+# Whether biocommons hgvs 1.5.7 parses the HGVSp (syntax only)
 sub valid_hgvsp {
-  my ($id, $desc) = @_;
+  my ($hgvsp) = @_;
 
-  return 0 unless length $id && $id =~ /^[A-Za-z0-9_.]+\z/;
-  return 0 unless $desc =~ s/^p\.//;
+  # VEP's URI escaping of '='
+  (my $s = $hgvsp) =~ s/%3D/=/g;
 
-  # predicted format p.(...) and VEP's URI escaping of '='
-  $desc = $1 if $desc =~ /^\((.+)\)\z/;
-  $desc =~ s/%3D/=/g;
-
-  # no protein / unknown effect / start lost
-  return 1 if $desc eq '0' || $desc eq '?' || $desc eq 'Met1?';
-
-  # synonymous: one residue, including a retained stop
-  return 1 if $desc =~ /^$RESX$POS=\z/;
-
-  # substitution (missense or nonsense); a substituted stop must be an extension
-  return 1 if $desc =~ /^$RES$POS$RESX\z/;
-
-  # deletion / duplication of one residue or a range (stop deletion must be an extension)
-  return 1 if $desc =~ /^$RES$POS(?:del|dup)\z/;
-  return $2 > $1 if $desc =~ /^$RES${POS}_$RES$POS(?:del|dup)\z/;
-
-  # insertion between adjacent residues; a stop can only end the inserted sequence
-  return $2 == $1 + 1 if $desc =~ /^$RES${POS}_$RESX${POS}ins(?:$RES)*$RESX\z/;
-
-  # deletion-insertion; a stop can only end the inserted sequence
-  return 1 if $desc =~ /^$RES${POS}delins(?:$RES)*$RESX\z/;
-  return $2 > $1 if $desc =~ /^$RES${POS}_$RES${POS}delins(?:$RES)*$RESX\z/;
-
-  # frameshift: long form with new stop, or short form (a frameshift at the stop codon is an extension)
-  return 1 if $desc =~ /^$RES$POS(?:${RES}fs$NEWSTOP|fs)\z/;
-
-  # extension: C-terminal (stop lost) or N-terminal (new upstream start)
-  return 1 if $desc =~ /^Ter$POS${RES}ext$NEWSTOP\z/;
-  return 1 if $desc =~ /^Met1ext-[1-9][0-9]*\z/;
-
-  return 0;
+  return $s =~ /^$ACCN$GENE:p\.$POSEDIT\z/ ? 1 : 0;
 }
 
 1;

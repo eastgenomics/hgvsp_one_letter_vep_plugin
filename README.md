@@ -3,7 +3,7 @@
 A VEP plugin, `HGVSpOneLetter`, that adds two fields:
 
 - `HGVSp_OneLetter`: VEP's HGVSp with single-letter amino acid codes
-- `HGVSp_Valid`: `true`/`false`, whether VEP's three-letter HGVSp is well-formed HGVS (see [HGVSp_Valid](#hgvsp_valid))
+- `HGVSp_Valid`: `true`/`false`, whether VEP's three-letter HGVSp parses as HGVS with the biocommons `hgvs` package (see [HGVSp_Valid](#hgvsp_valid))
 
 VEP's own three-letter `HGVSp` field is left unchanged, so both forms are available.
 
@@ -74,18 +74,21 @@ The plugin converts VEP's HGVSp faithfully, so anything VEP gets wrong in three-
 - writes synonymous multi-codon substitutions as `p.LeuSer112%3D` (not valid HGVS)
 - omits `ext` for delins within the stop codon (`p.Ter404delinsLeuArg`)
 
-All but the first are flagged `HGVSp_Valid=false`; `insTer`/`delinsTer` are well-formed HGVS, just not the preferred description. Details in [`validation/README.md`](validation/README.md).
+Of these, `hgvs` (and so `HGVSp_Valid`) rejects only `p.Met1_?2`, `p.Ter404delextTer7` and `p.LeuSer112%3D`; the others parse, they are just not the preferred description. Details in [`validation/README.md`](validation/README.md).
 
 ## HGVSp_Valid
 
-`HGVSp_Valid` is `true` when VEP's three-letter HGVSp is a well-formed HGVS protein description, and `false` otherwise. It checks syntax only: protein ID, residue codes, positions, and the forms of substitution, synonymous, deletion, duplication, insertion, delins, frameshift, extension and start loss. It does not check the change against the protein sequence.
+`HGVSp_Valid` is `true` when the biocommons [`hgvs`](https://github.com/biocommons/hgvs) package (1.5.7) parses VEP's three-letter HGVSp, and `false` when it does not. The plugin does not call `hgvs`: it uses a Perl port of the protein rules of its grammar, so it flags exactly what `hgvs` would and nothing more. VEP's `%3D` escaping of `=` is unescaped first.
 
-It is stricter than biocommons `hgvs`, which accepts some VEP forms that HGVS describes differently. Strings flagged `false` include:
+This is a syntax check only. Like `hgvs`, it does not check positions, ranges, where a stop may appear, or the change against the protein sequence: `p.Arg0His`, `p.Arg175_Gly173del` and `p.Ter394CysfsTer77` are all `true`.
 
-- `p.Met1_?2` (should be `p.Met1?`) and start loss reported mid-protein (`p.Cys244?`)
-- `p.Ter404delextTer7`, `p.Ter404delinsLeuArg`, `p.Ter394CysfsTer77` (changes at the stop codon should be extensions)
-- `p.LeuSer112%3D` (multi-codon synonymous), `p.Val0_Val1insAsn` (position 0)
-- any unrecognised residue code
+VEP forms that are `false`:
+
+- `p.Met1_?2`, `p.MetThr1_?2` (start-codon deletion)
+- `p.Ter404delextTer7` (stop-codon deletion)
+- `p.LeuSer112%3D` (synonymous change across codons)
+
+Residue codes `hgvs` does not support are also `false`: `Pyl`, `Asx` and `Glx` anywhere, and `Xaa` as the residue at a position (`p.Xaa10Ala`; `hgvs` reads the `X` as a stop). `Xaa` as a new residue (`p.Ala10Xaa`) is `true`.
 
 `HGVSp_OneLetter` is still written for these, converted code for code.
 

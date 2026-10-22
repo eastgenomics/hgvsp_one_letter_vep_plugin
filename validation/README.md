@@ -4,7 +4,7 @@ All validation used VEP 115 via eggd_vep 1.3.0 (`--refseq --hgvs --shift_3prime 
 
 ## Results
 
-The platform runs below used the plugin before `HGVSp_Valid` was added; `HGVSp_Valid` has so far been tested by the unit tests (`t/`) and the `hgvs` comparison below only.
+The platform runs below used the plugin before `HGVSp_Valid` was added; `HGVSp_Valid` has so far been tested offline only (unit tests in `t/` and the `hgvs` comparison below).
 
 | Test | Rows with HGVSp | `HGVSp_OneLetter` correct |
 |---|---|---|
@@ -23,6 +23,15 @@ The synthetic runs produced 19 distinct HGVSp patterns (`data/simulated_hgvsp_pa
 
 - 764,122 parsed, and every one matched the plain code swap
 - 768 were rejected as invalid HGVS; all are VEP output forms listed under "VEP limitations" below
+
+`check_hgvsp_valid.py` ran the plugin's `HGVSp_Valid` check and `hgvs` on the same strings:
+
+| Strings | Both valid | Both invalid | Disagree |
+|---|---|---|---|
+| 764,890 distinct HGVSp from the synthetic runs | 764,122 | 768 | 0 |
+| 155,287 distinct fuzzed protein-like strings (`--fuzz 200000`) | 22,506 | 132,781 | 0 |
+
+The 768 are start-codon deletions (`p.Met1_?2`, `p.MetThr1_?2`), stop-codon deletions (`p.Ter404delextTer7`, `p.Val403_Ter404delextTer6`) and synonymous changes across codons (`p.LeuSer112%3D`).
 
 ### VariantValidator
 
@@ -62,6 +71,7 @@ The malformed forms do occur in practice: in 178 Atlas validation VCFs (pre-filt
 | `make_candidates_v2.py` | Generate synthetic variants (SNVs, MNVs, indels, dups, stop insertions) across the CDS of given genes, from the Ensembl REST API |
 | `compare_hgvsp.py` | Compare a VEP run without and with the plugin, row by row; writes per-row results and a pattern catalogue |
 | `hgvs_parse_check.py` | Cross-check with biocommons `hgvs` |
+| `check_hgvsp_valid.py` | Check `HGVSp_Valid` against the `hgvs` parser, on row files and/or fuzzed strings |
 | `check_variantvalidator.py` | Compare a sample against VariantValidator. **Synthetic variants only** - it sends variants to a public API |
 
 `make_candidates_v2.py` writes contig `MT` variants if asked for mitochondrial genes; leave them out for eggd_vep, whose bcftools reference has no `MT`.
