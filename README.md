@@ -62,8 +62,6 @@ Add a plugin entry and `dir_plugins` to the VEP config:
 
 Check that the output CSQ header contains `HGVSp_OneLetter`; a missing field means the plugin did not load.
 
-See `config/atlas_vep_config_hgvsponeletter_example.json` for a full example based on `atlas_vep_config_v1.0.0.json`.
-
 ## Limitations
 
 The plugin converts VEP's HGVSp faithfully, so anything VEP gets wrong in three-letter form is also in `HGVSp_OneLetter`. Compared with VariantValidator, VEP 115:
@@ -74,7 +72,7 @@ The plugin converts VEP's HGVSp faithfully, so anything VEP gets wrong in three-
 - writes synonymous multi-codon substitutions as `p.LeuSer112%3D` (not valid HGVS)
 - omits `ext` for delins within the stop codon (`p.Ter404delinsLeuArg`)
 
-Of these, `hgvs` rejects (and `HGVSp_SyntaxFlag` flags) only `p.Met1_?2`, `p.Ter404delextTer7` and `p.LeuSer112%3D`; the others parse, they are just not the preferred description. Details in [`validation/README.md`](validation/README.md).
+Of these, `hgvs` rejects (and `HGVSp_SyntaxFlag` flags) only `p.Met1_?2`, `p.Ter404delextTer7` and `p.LeuSer112%3D`; the others parse, they are just not the preferred description.
 
 ## HGVSp_SyntaxFlag
 
@@ -98,4 +96,4 @@ Residue codes `hgvs` does not support are also flagged: `Pyl`, `Asx` and `Glx` a
 prove -v t/
 ```
 
-The tests use a stub of VEP's plugin base class (`t/lib`), so no VEP installation is needed. Platform validation is described in [`validation/README.md`](validation/README.md).
+The tests use a stub of VEP's plugin base class (`t/lib`), so no VEP installation is needed.

@@ -1,6 +1,4 @@
 *.vcf.gz
 *.vcf.gz.tbi
 *.vcf.gz.csi
-validation/vv_cache/
-__pycache__/
 CLAUDE.md
