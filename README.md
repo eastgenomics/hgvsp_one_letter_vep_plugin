@@ -24,7 +24,7 @@ VEP has no native option for one-letter HGVSp (VEP 115 `OutputFactory.pm` always
 | Single-residue duplication | `p.D393dup` | `p.Asp393dup` |
 | Stop-retained delins | `p.*394delins*` | `p.*394delins**` |
 
-These come from `TranscriptVariationAllele.pm` (release/115) lines 1933, 1897 and 2400, which only handle three-letter codes. In one Atlas sample, 41 of 2,323 HGVSp values were wrong.
+These come from `TranscriptVariationAllele.pm` (release/115) lines 1933, 1897 and 2400, which only handle three-letter codes. In one sample tested, 41 of 2,323 HGVSp values were wrong.
 
 `HGVSpOneLetter` never uses that code path. VEP runs plugins after it has built each output line (`OutputFactory.pm` `run_plugins`), so the plugin reads the finished three-letter `HGVSp` and swaps each amino acid code for its one-letter equivalent (`Ter` → `*`, `Sec` → `U`, `Pyl` → `O`, `Xaa` → `X`). Everything else is passed through unchanged, which means:
 
