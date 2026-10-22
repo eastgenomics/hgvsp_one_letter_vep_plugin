@@ -3,14 +3,14 @@
 A VEP plugin, `HGVSpOneLetter`, that adds two fields:
 
 - `HGVSp_OneLetter`: VEP's HGVSp with single-letter amino acid codes
-- `HGVSp_Valid`: `true`/`false`, whether VEP's three-letter HGVSp parses as HGVS with the biocommons `hgvs` package (see [HGVSp_Valid](#hgvsp_valid))
+- `HGVSp_SyntaxFlag`: `hgvs_unparseable` when VEP's three-letter HGVSp cannot be parsed by the biocommons `hgvs` package, empty otherwise (see [HGVSp_SyntaxFlag](#hgvsp_syntaxflag))
 
 VEP's own three-letter `HGVSp` field is left unchanged, so both forms are available.
 
 ```
-HGVSp            NP_000537.3:p.Arg175His      NP_000305.3:p.Lys6Ter       NP_000537.3:p.Asp393dup
-HGVSp_OneLetter  NP_000537.3:p.R175H          NP_000305.3:p.K6*            NP_000537.3:p.D393dup
-HGVSp_Valid      true                         true                        true
+HGVSp             NP_000537.3:p.Arg175His   NP_000305.3:p.Lys6Ter   NP_000305.3:p.Met1_?2
+HGVSp_OneLetter   NP_000537.3:p.R175H       NP_000305.3:p.K6*       NP_000305.3:p.M1_?2
+HGVSp_SyntaxFlag                                                    hgvs_unparseable
 ```
 
 ## Why not Ensembl's SingleLetterAA?
@@ -37,7 +37,7 @@ Requires `--hgvs`.
 
 ```bash
 cp HGVSpOneLetter.pm ~/.vep/Plugins/
-vep -i input.vcf --hgvs --plugin HGVSpOneLetter --fields "...,HGVSp,HGVSp_OneLetter,HGVSp_Valid"
+vep -i input.vcf --hgvs --plugin HGVSpOneLetter --fields "...,HGVSp,HGVSp_OneLetter,HGVSp_SyntaxFlag"
 ```
 
 ### With eggd_vep (1.3.0)
@@ -49,7 +49,7 @@ Add a plugin entry and `dir_plugins` to the VEP config:
   {
     "name": "HGVSpOneLetter",
     "pm_file": "file-xxxx",
-    "required_fields": "HGVSp_OneLetter,HGVSp_Valid",
+    "required_fields": "HGVSp_OneLetter,HGVSp_SyntaxFlag",
     "resource_files": []
   }
 ],
@@ -57,7 +57,7 @@ Add a plugin entry and `dir_plugins` to the VEP config:
 ```
 
 - `"resource_files": []` is required: eggd_vep iterates over it with jq and fails if it is missing.
-- `required_fields` adds `HGVSp_OneLetter` and `HGVSp_Valid` to `--fields` (they are appended after the other fields).
+- `required_fields` adds `HGVSp_OneLetter` and `HGVSp_SyntaxFlag` to `--fields` (they are appended after the other fields).
 - **`dir_plugins` is required.** eggd_vep downloads each `pm_file` to `/home/dnanexus/Plugins` (`/data/Plugins` in the container), but the Ensembl image defaults to `--dir_plugins /plugins`, its bundled copy of VEP_plugins. Without the flag, a plugin that is not bundled in the image is skipped with only a warning (`Failed to compile plugin HGVSpOneLetter`) and the job still completes. VEP puts `dir_plugins` first on `@INC` (`Runner.pm`), so other plugins in the config are then also loaded from their `pm_file`.
 
 Check that the output CSQ header contains `HGVSp_OneLetter`; a missing field means the plugin did not load.
@@ -74,23 +74,23 @@ The plugin converts VEP's HGVSp faithfully, so anything VEP gets wrong in three-
 - writes synonymous multi-codon substitutions as `p.LeuSer112%3D` (not valid HGVS)
 - omits `ext` for delins within the stop codon (`p.Ter404delinsLeuArg`)
 
-Of these, `hgvs` (and so `HGVSp_Valid`) rejects only `p.Met1_?2`, `p.Ter404delextTer7` and `p.LeuSer112%3D`; the others parse, they are just not the preferred description. Details in [`validation/README.md`](validation/README.md).
+Of these, `hgvs` rejects (and `HGVSp_SyntaxFlag` flags) only `p.Met1_?2`, `p.Ter404delextTer7` and `p.LeuSer112%3D`; the others parse, they are just not the preferred description. Details in [`validation/README.md`](validation/README.md).
 
-## HGVSp_Valid
+## HGVSp_SyntaxFlag
 
-`HGVSp_Valid` is `true` when the biocommons [`hgvs`](https://github.com/biocommons/hgvs) package (1.5.7) parses VEP's three-letter HGVSp, and `false` when it does not. The plugin does not call `hgvs`: it uses a Perl port of the protein rules of its grammar, so it flags exactly what `hgvs` would and nothing more. VEP's `%3D` escaping of `=` is unescaped first.
+`HGVSp_SyntaxFlag` is `hgvs_unparseable` when the biocommons [`hgvs`](https://github.com/biocommons/hgvs) package (1.5.7) cannot parse VEP's three-letter HGVSp, and empty otherwise. The plugin does not call `hgvs`: it uses a Perl port of the protein rules of its grammar, so it flags exactly what `hgvs` rejects and nothing more. VEP's `%3D` escaping of `=` is unescaped first.
 
-This is a syntax check only. Like `hgvs`, it does not check positions, ranges, where a stop may appear, or the change against the protein sequence: `p.Arg0His`, `p.Arg175_Gly173del` and `p.Ter394CysfsTer77` are all `true`.
+It is a format check, not a validity check. An empty flag does not mean the HGVSp is correct: like `hgvs`, the check does not look at positions, ranges, where a stop may appear, or the change against the protein sequence, so `p.Arg0His`, `p.Arg175_Gly173del` and `p.Ter394CysfsTer77` are not flagged. The flag is also empty when there is no HGVSp.
 
-VEP forms that are `false`:
+VEP forms that are flagged:
 
 - `p.Met1_?2`, `p.MetThr1_?2` (start-codon deletion)
 - `p.Ter404delextTer7` (stop-codon deletion)
 - `p.LeuSer112%3D` (synonymous change across codons)
 
-Residue codes `hgvs` does not support are also `false`: `Pyl`, `Asx` and `Glx` anywhere, and `Xaa` as the residue at a position (`p.Xaa10Ala`; `hgvs` reads the `X` as a stop). `Xaa` as a new residue (`p.Ala10Xaa`) is `true`.
+Residue codes `hgvs` does not support are also flagged: `Pyl`, `Asx` and `Glx` anywhere, and `Xaa` as the residue at a position (`p.Xaa10Ala`; `hgvs` reads the `X` as a stop). `Xaa` as a new residue (`p.Ala10Xaa`) is not flagged.
 
-`HGVSp_OneLetter` is still written for these, converted code for code.
+`HGVSp_OneLetter` is still written for flagged rows, converted code for code.
 
 ## Tests
 

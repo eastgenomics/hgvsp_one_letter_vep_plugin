@@ -30,13 +30,16 @@
  Because it starts from VEP's own HGVSp, --hgvsp_use_prediction,
  --remove_hgvsp_version and --no_escape are honoured. Requires --hgvs.
 
- It also adds HGVSp_Valid ("true"/"false"): whether the biocommons hgvs
- package (1.5.7) can parse VEP's three-letter HGVSp, using a port of its
- protein grammar. This is a syntax check only; it does not check positions,
- ranges or the change against the protein sequence. VEP forms that hgvs
- rejects, such as p.Met1_?2, p.Ter404delextTer7 and p.LeuSer112=, are flagged
- "false", as are residue codes hgvs does not support (Pyl, Asx, Glx, and Xaa
- at a position). HGVSp_OneLetter is still written for them.
+ It also adds HGVSp_SyntaxFlag: "hgvs_unparseable" when the biocommons hgvs
+ package (1.5.7) cannot parse VEP's three-letter HGVSp, and empty otherwise.
+ It uses a port of the hgvs protein grammar, so it flags exactly what hgvs
+ rejects: in VEP 115 output, start-codon deletions (p.Met1_?2), stop-codon
+ deletions (p.Ter404delextTer7), synonymous changes across codons
+ (p.LeuSer112%3D), and residue codes hgvs does not support (Pyl, Asx, Glx,
+ and Xaa at a position).
+
+ This is a format check only: an empty flag does not mean the HGVSp is
+ correct for the protein. HGVSp_OneLetter is still written for flagged rows.
 
 =cut
 
@@ -60,7 +63,7 @@ my %AA = (
 my $AA_RE = join '|', keys %AA;
 
 # Protein rules of the biocommons hgvs 1.5.7 grammar (hgvs/_data/hgvs.pymeta),
-# used for HGVSp_Valid. The grammar is a PEG: a choice takes the first
+# used for HGVSp_SyntaxFlag. The grammar is a PEG: a choice takes the first
 # alternative that matches and never goes back to try the others, and repeats
 # are greedy. Choices are therefore atomic groups (?>...) and repeats are
 # possessive, so this accepts exactly what hgvs parses. Asx and Glx are in
@@ -102,8 +105,8 @@ sub feature_types {
 
 sub get_header_info {
   return {
-    HGVSp_OneLetter => 'HGVSp with single-letter amino acid codes (converted from three-letter HGVSp)',
-    HGVSp_Valid     => 'Whether HGVSp parses as HGVS with biocommons hgvs 1.5.7 (true/false; syntax only)',
+    HGVSp_OneLetter  => 'HGVSp with single-letter amino acid codes (converted from three-letter HGVSp)',
+    HGVSp_SyntaxFlag => 'Set when biocommons hgvs 1.5.7 cannot parse HGVSp (hgvs_unparseable); empty otherwise. Format check only, not a validity check',
   };
 }
 
@@ -117,20 +120,20 @@ sub run {
   # convert only the description after the protein ID
   my ($id, $desc) = split /:/, $hgvsp, 2;
   return {} unless defined $desc;
-  my $valid = valid_hgvsp($hgvsp) ? 'true' : 'false';
+  my $flag = syntax_flag($hgvsp);
   $desc =~ s/($AA_RE)/$AA{$1}/g;
 
-  return { HGVSp_OneLetter => "$id:$desc", HGVSp_Valid => $valid };
+  return { HGVSp_OneLetter => "$id:$desc", $flag ? (HGVSp_SyntaxFlag => $flag) : () };
 }
 
-# Whether biocommons hgvs 1.5.7 parses the HGVSp (syntax only)
-sub valid_hgvsp {
+# 'hgvs_unparseable' if biocommons hgvs 1.5.7 cannot parse the HGVSp, else ''
+sub syntax_flag {
   my ($hgvsp) = @_;
 
   # VEP's URI escaping of '='
   (my $s = $hgvsp) =~ s/%3D/=/g;
 
-  return $s =~ /^$ACCN$GENE:p\.$POSEDIT\z/ ? 1 : 0;
+  return $s =~ /^$ACCN$GENE:p\.$POSEDIT\z/ ? '' : 'hgvs_unparseable';
 }
 
 1;

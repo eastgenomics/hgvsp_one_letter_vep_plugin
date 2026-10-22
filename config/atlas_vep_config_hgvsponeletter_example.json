@@ -134,7 +134,7 @@
     {
       "name": "HGVSpOneLetter",
       "pm_file": "file-xxxx",
-      "required_fields": "HGVSp_OneLetter,HGVSp_Valid",
+      "required_fields": "HGVSp_OneLetter,HGVSp_SyntaxFlag",
       "resource_files": []
     }
   ],

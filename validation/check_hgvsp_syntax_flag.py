@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Check that HGVSp_Valid agrees with the biocommons hgvs parser.
+"""Check that HGVSp_SyntaxFlag agrees with the biocommons hgvs parser.
 
-Runs the plugin's valid_hgvsp() and hgvs parse_hgvs_variant() on the same
-strings and reports every disagreement. Strings are distinct HGVSp_3letter
+Runs the plugin's syntax_flag() and hgvs parse_hgvs_variant() on the same
+strings and reports every disagreement: a string should be flagged exactly
+when hgvs fails to parse it. Strings are distinct HGVSp_3letter
 values from compare_hgvsp.py row files, plus (with --fuzz N) N random
 protein-like strings built from residue codes, positions and edit keywords.
 
 Needs: hgvs (install --no-deps with bioutils, Parsley, attrs) and perl.
-Usage: python3 check_hgvsp_valid.py [--fuzz N] [<rows.tsv> ...]
+Usage: python3 check_hgvsp_syntax_flag.py [--fuzz N] [<rows.tsv> ...]
 """
 import argparse, csv, os, random, subprocess, collections
 import hgvs.parser
@@ -43,7 +44,7 @@ for f in a.rows:
 strings = sorted(strings)
 
 perl = ("use lib '%s/t/lib', '%s'; use HGVSpOneLetter; "
-        "while (<STDIN>) { chomp; print HGVSpOneLetter::valid_hgvsp($_) ? \"true\\n\" : \"false\\n\" }") % (REPO, REPO)
+        "while (<STDIN>) { chomp; print HGVSpOneLetter::syntax_flag($_) ? \"flagged\\n\" : \"ok\\n\" }") % (REPO, REPO)
 ours = subprocess.run(["perl", "-e", perl], input="\n".join(strings) + "\n", capture_output=True, text=True, check=True).stdout.split()
 
 assert len(ours) == len(strings), "perl output does not match input line count"
@@ -51,8 +52,8 @@ assert len(ours) == len(strings), "perl output does not match input line count"
 hp = hgvs.parser.Parser()
 res = collections.Counter(); diff = []
 for s, v in zip(strings, ours):
-    try: hp.parse_hgvs_variant(s.replace("%3D", "=")); h = "true"
-    except Exception: h = "false"
+    try: hp.parse_hgvs_variant(s.replace("%3D", "=")); h = "ok"
+    except Exception: h = "flagged"
     res[(h, v)] += 1
     if h != v: diff.append((h, v, s))
 print(len(strings), "distinct strings")
