@@ -1,4 +1,4 @@
-# vep_plugin_hgvsp_one_letter
+# hgvsp_one_letter_vep_plugin
 
 A VEP plugin, `HGVSpOneLetter`, that adds two fields:
 
