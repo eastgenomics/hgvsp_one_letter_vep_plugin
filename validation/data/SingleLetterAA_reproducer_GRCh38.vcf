@@ -1,0 +1,29 @@
+##fileformat=VCFv4.2
+##source=simulated_SingleLetterAA_reproducer (synthetic variants, no patient data)
+##reference=GRCh38
+##contig=<ID=10,length=133797422>
+##contig=<ID=17,length=83257441>
+##INFO=<ID=CASE,Number=1,Type=String,Description="Test case category">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SIMULATED
+10	87864469	sim1	C	CA	.	PASS	CASE=control_start_lost	GT:AD	0/1:20,10
+10	87864469	sim2	C	CATG	.	PASS	CASE=bug_dup_3letter	GT:AD	0/1:20,10
+10	87864471	sim3	T	TG	.	PASS	CASE=control_frameshift	GT:AD	0/1:20,10
+10	87864471	sim4	T	TGTA	.	PASS	CASE=control_ins_stop	GT:AD	0/1:20,10
+10	87864484	sim5	C	CT	.	PASS	CASE=bug_fs_immediate_stop	GT:AD	0/1:20,10
+10	87864492	sim6	TCG	T	.	PASS	CASE=bug_fs_immediate_stop	GT:AD	0/1:20,10
+10	87894022	sim7	C	CAGA	.	PASS	CASE=bug_trailing_after_stop	GT:AD	0/1:20,10
+10	87933147	sim8	C	T	.	PASS	CASE=control_nonsense_snv	GT:AD	0/1:20,10
+10	87965469	sim9	C	CTAA	.	PASS	CASE=bug_stop_retained_double_star	GT:AD	0/1:20,10
+10	87965470	sim10	T	TTAA	.	PASS	CASE=diff_stop_loss_ext	GT:AD	0/1:20,10
+17	7669609	sim11	T	TA	.	PASS	CASE=control_frameshift_at_stop	GT:AD	0/1:20,10
+17	7669609	sim12	T	TCTA	.	PASS	CASE=diff_stop_loss_ext	GT:AD	0/1:20,10
+17	7669610	sim13	C	CACT	.	PASS	CASE=bug_stop_retained_double_star	GT:AD	0/1:20,10
+17	7669610	sim14	C	CT	.	PASS	CASE=control_synonymous_stop	GT:AD	0/1:20,10
+17	7669611	sim15	A	AGTC	.	PASS	CASE=bug_dup_3letter	GT:AD	0/1:20,10
+17	7669613	sim16	T	TTCA	.	PASS	CASE=control_delins	GT:AD	0/1:20,10
+17	7669614	sim17	C	CA	.	PASS	CASE=bug_fs_immediate_stop	GT:AD	0/1:20,10
+17	7669614	sim18	C	CCTA	.	PASS	CASE=control_ins_stop	GT:AD	0/1:20,10
+17	7669614	sim19	CTG	C	.	PASS	CASE=bug_fs_immediate_stop	GT:AD	0/1:20,10
+17	7675088	sim20	C	T	.	PASS	CASE=control_missense_snv	GT:AD	0/1:20,10
