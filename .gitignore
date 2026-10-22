@@ -1,0 +1,4 @@
+*.vcf.gz
+*.vcf.gz.tbi
+*.vcf.gz.csi
+CLAUDE.md
