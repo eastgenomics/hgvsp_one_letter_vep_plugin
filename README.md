@@ -78,7 +78,7 @@ Of these, `hgvs` rejects (and `HGVSp_SyntaxFlag` flags) only `p.Met1_?2`, `p.Ter
 
 ## HGVSp_SyntaxFlag
 
-`HGVSp_SyntaxFlag` is `hgvs_unparseable` when the biocommons [`hgvs`](https://github.com/biocommons/hgvs) package (1.5.7) cannot parse VEP's three-letter HGVSp, and empty otherwise. The plugin does not call `hgvs`: it uses a Perl port of the protein rules of its grammar, so it flags exactly what `hgvs` rejects and nothing more. VEP's `%3D` escaping of `=` is unescaped first.
+`HGVSp_SyntaxFlag` is `hgvs_unparseable` when the biocommons [`hgvs`](https://github.com/biocommons/hgvs) package (1.5.7) cannot parse VEP's three-letter HGVSp, and empty otherwise. The plugin does not call `hgvs`: it uses a Perl port of the protein rules of its grammar, so it flags exactly what `hgvs` rejects and nothing more. VEP's `%3D` escaping of `=` is unescaped first. Two deliberate differences: the string must be a protein description (`:p.`; `hgvs` would also parse `c.` and other types), and accessions and gene symbols are matched as ASCII only.
 
 It is a format check, not a validity check. An empty flag does not mean the HGVSp is correct: like `hgvs`, the check does not look at positions, ranges, where a stop may appear, or the change against the protein sequence, so `p.Arg0His`, `p.Arg175_Gly173del` and `p.Ter394CysfsTer77` are not flagged. The flag is also empty when there is no HGVSp.
 

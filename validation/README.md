@@ -22,7 +22,7 @@ The synthetic runs produced 19 distinct HGVSp patterns (`data/simulated_hgvsp_pa
 `hgvs_parse_check.py` parsed all 764,890 distinct HGVSp strings from the synthetic runs with `hgvs` 1.5.7 and formatted them with `p_3_letter=False`:
 
 - 764,122 parsed, and every one matched the plain code swap
-- 768 were rejected as invalid HGVS; all are VEP output forms listed under "VEP limitations" below
+- 768 were rejected as invalid HGVS; all are VEP output forms listed under "VEP limitations (inherited)" below
 
 `check_hgvsp_syntax_flag.py` ran the plugin's `HGVSp_SyntaxFlag` check and `hgvs` on the same strings (a string should be flagged exactly when `hgvs` rejects it):
 
